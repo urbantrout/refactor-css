@@ -1,65 +1,27 @@
-# refactor-tailwind-css README
+# Refactor CSS
 
-This is the README for your extension "refactor-tailwind-css". After writing up a brief description, we recommend including the following sections.
+**[Install via VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=urbantrout.refactor-css)**
+
+Helps you identify reoccurring CSS class name combinations in your markup. This is especially useful if you are working with an utlity-first CSS framework like [TailwindCSS](https://tailwindcss.com/), [Tachyons](http://tachyons.io/),…
+
+<img src="https://raw.githubusercontent.com/urbantrout/refactro-css/master/img/refactor.gif" alt="Hovering over CSS classes reveals infos." width="750">
 
 ## Features
 
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
+Class names are highlighted if they have more than 3 unique classes and this combination of classes appears more than 3 times in the current document.
 
-For example if there is an image subfolder under your extension project workspace:
+Hovering over classes highlights all other elements with the same combination of classes.
 
-\!\[feature X\]\(images/feature-x.png\)
-
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
-
-## Requirements
-
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
-
-## Extension Settings
-
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
-
-For example:
-
-This extension contributes the following settings:
-
-* `myExtension.enable`: enable/disable this extension
-* `myExtension.thing`: set to `blah` to do something
-
-## Known Issues
-
-Calling out known issues can help limit users opening duplicate issues against your extension.
+The order of the class names does not matter.
 
 ## Release Notes
 
-Users appreciate release notes as you update your extension.
+### 0.0.1
 
-### 1.0.0
+Initial release of Refactor CSS
 
-Initial release of ...
+## Roadmap
 
-### 1.0.1
-
-Fixed issue #.
-
-### 1.1.0
-
-Added features X, Y, and Z.
-
------------------------------------------------------------------------------------------------------------
-
-## Working with Markdown
-
-**Note:** You can author your README using Visual Studio Code.  Here are some useful editor keyboard shortcuts:
-
-* Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux)
-* Toggle preview (`Shift+CMD+V` on macOS or `Shift+Ctrl+V` on Windows and Linux)
-* Press `Ctrl+Space` (Windows, Linux) or `Cmd+Space` (macOS) to see a list of Markdown snippets
-
-### For more information
-
-* [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-* [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
-
-**Enjoy!**
+- Parse whole workspace, not only current document.
+- Provide text selection of all occurrences for easy refactoring
+- Add settings for the user (limits, colors,…)
