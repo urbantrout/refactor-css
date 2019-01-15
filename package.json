@@ -9,6 +9,7 @@
   "categories": [
     "Other"
   ],
+  "icon": "icon.png",
   "keywords": [
     "css",
     "refactor",
@@ -47,5 +48,9 @@
     "name": "Harald Atteneder",
     "email": "harald@urbantrout.io",
     "url": "https://urbantrout.io"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/urbantrout/refactor-css.git"
   }
 }
