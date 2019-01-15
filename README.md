@@ -4,7 +4,7 @@
 
 Helps you identify reoccurring CSS class name combinations in your markup. This is especially useful if you are working with an utlity-first CSS framework like [TailwindCSS](https://tailwindcss.com/), [Tachyons](http://tachyons.io/),…
 
-<img src="https://raw.githubusercontent.com/urbantrout/refactro-css/master/img/refactor.gif" alt="Hovering over CSS classes reveals infos." width="750">
+<img src="https://raw.githubusercontent.com/urbantrout/refactor-css/master/img/refactor.gif" alt="Hovering over CSS classes reveals infos." width="750">
 
 ## Features
 
