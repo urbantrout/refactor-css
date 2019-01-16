@@ -16,7 +16,7 @@ interface Document {
     getText(): string;
     classesWrappers: ClassesWrapper[];
 }
-const documents: Document[] = [];
+const documents: Map<string, Document> = new Map();
 const readFileAsync = promisify(fs.readFile);
 
 async function createDocument(uri: vscode.Uri): Promise<Document> {
@@ -36,16 +36,10 @@ async function cache(): Promise<void> {
         const uris: vscode.Uri[] = await Fetcher.findAllParsableDocuments();
 
         uris.map(uri => {
-            const test = async function test(): Promise<Document> {
-                const document: Document = await createDocument(uri);
-                return document;
-            };
-
-            test().then(result => {
-                getClassesFromDocument(result);
-                documents.push(result);
+            createDocument(uri).then(document => {
+                getClassesFromDocument(document);
+                documents.set(uri.fsPath, document);
             });
-
         });
     } catch (err) {
         vscode.window.showErrorMessage(err.message);
@@ -112,8 +106,6 @@ function getClassesFromDocument(document: Document) {
     }
 }
 
-
-
 export async function activate(context: vscode.ExtensionContext) {
     const CLASSES_MINIMUM: number = 3;
     const OCCURRENCE_MINIMUM: number = 3;
@@ -159,6 +151,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
     vscode.window.onDidChangeActiveTextEditor(editor => {
         activeEditor = editor;
+        hoveredClasses = undefined;
         if (editor) {
             triggerUpdateDecorations();
         }
@@ -166,18 +159,26 @@ export async function activate(context: vscode.ExtensionContext) {
 
     vscode.workspace.onDidChangeTextDocument(event => {
         if (activeEditor && event.document === activeEditor.document) {
+            const editor = activeEditor;
+            const document: Document = {
+                path: editor.document.uri.path,
+                getText() {
+                    return editor.document.getText();
+                },
+                classesWrappers: []
+            };
+            getClassesFromDocument(document);
+            documents.set(editor.document.uri.fsPath, document);
             triggerUpdateDecorations();
         }
     }, null, context.subscriptions);
 
 
     function getActiveDocument(): Document | undefined {
-        return documents.find(document => {
-            if (activeEditor) {
-                return document.path === activeEditor.document.uri.path;
-            }
-            return false;
-        });
+        if (activeEditor) {
+            return documents.get(activeEditor.document.uri.path);
+        }
+        return;
     }
 
     function triggerUpdateDecorations() {
@@ -186,8 +187,6 @@ export async function activate(context: vscode.ExtensionContext) {
         }
         timeout = setTimeout(updateDecorations, 500);
     }
-
-
 
     function updateDecorations() {
         if (!activeEditor) {
@@ -198,7 +197,6 @@ export async function activate(context: vscode.ExtensionContext) {
 
         if (document) {
             decorations.length = 0;
-
             getClassesFromDocument(document);
             for (const classesWrapper of document.classesWrappers) {
                 if (classesWrapper.classes.length > CLASSES_MINIMUM && classesWrapper.ranges.length > OCCURRENCE_MINIMUM) {
@@ -292,7 +290,7 @@ export async function activate(context: vscode.ExtensionContext) {
                             const hoverStr = new vscode.MarkdownString();
                             hoverStr.appendCodeblock(`<element class="${classes.join(' ')}"/>`, 'html');
 
-                            documents.map(document => {
+                            for (const [path, document] of documents.entries()) {
                                 const equalWrapper = document.classesWrappers.find(classWrapper => {
 
                                     if (!hoveredClasses) { return false; }
@@ -305,13 +303,13 @@ export async function activate(context: vscode.ExtensionContext) {
                                 });
 
                                 if (equalWrapper) {
-                                    const line = `${equalWrapper.ranges.length}x in\t${document.path.substr(workspaceRootPath ? workspaceRootPath.length : 0)}`;
-                                    // if (document.uri === ) {
-                                    //     line = `**${line}**`;
-                                    // }
+                                    let line = `${equalWrapper.ranges.length}x in\t${document.path.substr(workspaceRootPath ? workspaceRootPath.length : 0)}`;
+                                    if (document.path === activeDocument.path) {
+                                        line = `**${line}**`;
+                                    }
                                     hoverStr.appendMarkdown(`${line}  \n`);
                                 }
-                            });
+                            }
 
                             return new vscode.Hover(hoverStr, range);
                         }
