@@ -34,17 +34,17 @@ async function cache(): Promise<void> {
     }
 }
 
-function getClassesFromDocument(document: DocumentWrapper) {
+function getClassesFromDocument(documentWrapper: DocumentWrapper) {
     let match;
     const regEx = /\bclass(Name)?=['"]([^'"]*)*/g;
-    const text = document.document.getText();
+    const text = documentWrapper.document.getText();
     let currentClasses: ClassesWrapper | undefined;
-    document.classesWrappers = [];
+    documentWrapper.classesWrappers = [];
     while (match = regEx.exec(text)) {
         // Get unique classes
         const classes: string[] = [...new Set(match[2].replace(/['"]+/g, '').match(/\S+/g))] || [];
 
-        const alreadyRegistered = document.classesWrappers.length > 0 && document.classesWrappers.some(classWrapper =>
+        const alreadyRegistered = documentWrapper.classesWrappers.length > 0 && documentWrapper.classesWrappers.some(classWrapper =>
             classWrapper.classes.length === classes.length &&
             classWrapper.classes.every(cssClass =>
                 classes.includes(cssClass)
@@ -52,7 +52,7 @@ function getClassesFromDocument(document: DocumentWrapper) {
         );
 
         if (alreadyRegistered) {
-            currentClasses = document.classesWrappers.find(classWrapper =>
+            currentClasses = documentWrapper.classesWrappers.find(classWrapper =>
                 classWrapper.classes.length === classes.length &&
                 classWrapper.classes.every(cssClass =>
                     classes.includes(cssClass)
@@ -61,8 +61,8 @@ function getClassesFromDocument(document: DocumentWrapper) {
 
             if (currentClasses) {
                 currentClasses.ranges.push(new vscode.Range(
-                    document.document.positionAt(match.index + (match[0].length - match[2].length)),
-                    document.document.positionAt(match.index + (match[0].length - match[2].length + 1) + match[2].length - 1)
+                    documentWrapper.document.positionAt(match.index + (match[0].length - match[2].length)),
+                    documentWrapper.document.positionAt(match.index + (match[0].length - match[2].length + 1) + match[2].length - 1)
                 ));
             }
         } else {
@@ -70,12 +70,12 @@ function getClassesFromDocument(document: DocumentWrapper) {
                 classes,
                 ranges: [
                     new vscode.Range(
-                        document.document.positionAt(match.index + (match[0].length - match[2].length)),
-                        document.document.positionAt(match.index + (match[0].length - match[2].length + 1) + match[2].length - 1)
+                        documentWrapper.document.positionAt(match.index + (match[0].length - match[2].length)),
+                        documentWrapper.document.positionAt(match.index + (match[0].length - match[2].length + 1) + match[2].length - 1)
                     )
                 ]
             };
-            document.classesWrappers.push(currentClasses);
+            documentWrapper.classesWrappers.push(currentClasses);
         }
     }
 }
