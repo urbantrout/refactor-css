@@ -1,6 +1,8 @@
 import * as fs from 'fs';
 import * as vscode from 'vscode';
 import Fetcher from "./fetcher";
+import { promisify } from 'util';
+const lineColumn = require('line-column');
 
 let caching: boolean = false;
 
@@ -9,50 +11,79 @@ interface ClassesWrapper {
     ranges: vscode.Range[];
 }
 
-interface DocumentWrapper {
-    document: vscode.TextDocument;
+interface Document {
+    path: string;
+    getText(): string;
     classesWrappers: ClassesWrapper[];
 }
-const documentWrappers: DocumentWrapper[] = [];
+const documents: Document[] = [];
+const readFileAsync = promisify(fs.readFile);
+
+async function createDocument(uri: vscode.Uri): Promise<Document> {
+    const text = await readFileAsync(uri.fsPath).then(data => data.toString());
+    const document: Document = {
+        path: uri.fsPath,
+        getText(): string {
+            return text;
+        },
+        classesWrappers: []
+    };
+    return document;
+}
 
 async function cache(): Promise<void> {
     try {
         const uris: vscode.Uri[] = await Fetcher.findAllParsableDocuments();
 
         uris.map(uri => {
-            vscode.workspace.openTextDocument(uri).then(document => {
-                const documentWrapper: DocumentWrapper = {
-                    document,
-                    classesWrappers: [],
-                };
-                getClassesFromDocument(documentWrapper);
-                documentWrappers.push(documentWrapper);
+            const test = async function test(): Promise<Document> {
+                const document: Document = await createDocument(uri);
+                return document;
+            };
+
+            test().then(result => {
+                getClassesFromDocument(result);
+                documents.push(result);
             });
+
         });
     } catch (err) {
         vscode.window.showErrorMessage(err.message);
     }
 }
 
-function getClassesFromDocument(documentWrapper: DocumentWrapper) {
+function getClassesFromDocument(document: Document) {
     let match;
     const regEx = /\bclass(Name)?=['"]([^'"]*)*/g;
-    const text = documentWrapper.document.getText();
+    const text = document.getText();
     let currentClasses: ClassesWrapper | undefined;
-    documentWrapper.classesWrappers = [];
+    document.classesWrappers = [];
     while (match = regEx.exec(text)) {
         // Get unique classes
         const classes: string[] = [...new Set(match[2].replace(/['"]+/g, '').match(/\S+/g))] || [];
+        const startIndex = match.index + (match[0].length - match[2].length);
+        const endIndex = match.index + (match[0].length - match[2].length + 1) + match[2].length - 1;
 
-        const alreadyRegistered = documentWrapper.classesWrappers.length > 0 && documentWrapper.classesWrappers.some(classWrapper =>
+        const alreadyRegistered = document.classesWrappers.length > 0 && document.classesWrappers.some(classWrapper =>
             classWrapper.classes.length === classes.length &&
             classWrapper.classes.every(cssClass =>
                 classes.includes(cssClass)
             )
         );
 
+
+        const finder = lineColumn(text);
+        const startPosition = new vscode.Position(
+            finder.fromIndex(startIndex).line - 1,
+            finder.fromIndex(startIndex).col - 1
+        );
+        const endPosition = new vscode.Position(
+            finder.fromIndex(endIndex).line - 1,
+            finder.fromIndex(endIndex).col - 1
+        );
+
         if (alreadyRegistered) {
-            currentClasses = documentWrapper.classesWrappers.find(classWrapper =>
+            currentClasses = document.classesWrappers.find(classWrapper =>
                 classWrapper.classes.length === classes.length &&
                 classWrapper.classes.every(cssClass =>
                     classes.includes(cssClass)
@@ -61,8 +92,8 @@ function getClassesFromDocument(documentWrapper: DocumentWrapper) {
 
             if (currentClasses) {
                 currentClasses.ranges.push(new vscode.Range(
-                    documentWrapper.document.positionAt(match.index + (match[0].length - match[2].length)),
-                    documentWrapper.document.positionAt(match.index + (match[0].length - match[2].length + 1) + match[2].length - 1)
+                    startPosition,
+                    endPosition
                 ));
             }
         } else {
@@ -70,12 +101,13 @@ function getClassesFromDocument(documentWrapper: DocumentWrapper) {
                 classes,
                 ranges: [
                     new vscode.Range(
-                        documentWrapper.document.positionAt(match.index + (match[0].length - match[2].length)),
-                        documentWrapper.document.positionAt(match.index + (match[0].length - match[2].length + 1) + match[2].length - 1)
+                        startPosition,
+                        endPosition
                     )
                 ]
+
             };
-            documentWrapper.classesWrappers.push(currentClasses);
+            document.classesWrappers.push(currentClasses);
         }
     }
 }
@@ -139,10 +171,10 @@ export async function activate(context: vscode.ExtensionContext) {
     }, null, context.subscriptions);
 
 
-    function getActiveDocument(): DocumentWrapper | undefined {
-        return documentWrappers.find(documentWrapper => {
+    function getActiveDocument(): Document | undefined {
+        return documents.find(document => {
             if (activeEditor) {
-                return documentWrapper.document.uri.path === activeEditor.document.uri.path;
+                return document.path === activeEditor.document.uri.path;
             }
             return false;
         });
@@ -260,8 +292,8 @@ export async function activate(context: vscode.ExtensionContext) {
                             const hoverStr = new vscode.MarkdownString();
                             hoverStr.appendCodeblock(`<element class="${classes.join(' ')}"/>`, 'html');
 
-                            documentWrappers.map(documentWrapper => {
-                                const equalWrapper = documentWrapper.classesWrappers.find(classWrapper => {
+                            documents.map(document => {
+                                const equalWrapper = document.classesWrappers.find(classWrapper => {
 
                                     if (!hoveredClasses) { return false; }
                                     return classWrapper.classes.length === hoveredClasses.classes.length &&
@@ -273,10 +305,10 @@ export async function activate(context: vscode.ExtensionContext) {
                                 });
 
                                 if (equalWrapper) {
-                                    let line = `${equalWrapper.ranges.length}x in\t${documentWrapper.document.fileName.substr(workspaceRootPath ? workspaceRootPath.length : 0)}`;
-                                    if (documentWrapper.document === document) {
-                                        line = `**${line}**`;
-                                    }
+                                    const line = `${equalWrapper.ranges.length}x in\t${document.path.substr(workspaceRootPath ? workspaceRootPath.length : 0)}`;
+                                    // if (document.uri === ) {
+                                    //     line = `**${line}**`;
+                                    // }
                                     hoverStr.appendMarkdown(`${line}  \n`);
                                 }
                             });
