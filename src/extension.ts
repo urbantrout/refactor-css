@@ -1,20 +1,105 @@
-'use strict';
-
+import * as fs from 'fs';
 import * as vscode from 'vscode';
+import Fetcher from "./fetcher";
 
-export function activate(context: vscode.ExtensionContext) {
-    const CLASSES_MINIMUM = 3;
-    const OCCURRENCE_MINIMUM = 3;
+let caching: boolean = false;
 
-    let hoveredClassAttribute: ClassAttribute | undefined;
-    let timeout: NodeJS.Timer | null = null;
-    interface ClassAttribute {
-        classes: string[];
-        count: number;
-        positions: vscode.Range[];
+interface ClassesWrapper {
+    classes: string[];
+    ranges: vscode.Range[];
+}
+
+interface DocumentWrapper {
+    document: vscode.TextDocument;
+    classesWrappers: ClassesWrapper[];
+}
+const documentWrappers: DocumentWrapper[] = [];
+
+async function cache(): Promise<void> {
+    try {
+        const uris: vscode.Uri[] = await Fetcher.findAllParsableDocuments();
+
+        uris.map(uri => {
+            vscode.workspace.openTextDocument(uri).then(document => {
+                const documentWrapper: DocumentWrapper = {
+                    document,
+                    classesWrappers: [],
+                };
+                getClassesFromDocument(documentWrapper);
+                documentWrappers.push(documentWrapper);
+            });
+        });
+    } catch (err) {
+        vscode.window.showErrorMessage(err.message);
     }
+}
 
-    const documentClasses: ClassAttribute[] = [];
+function getClassesFromDocument(document: DocumentWrapper) {
+    let match;
+    const regEx = /\bclass(Name)?=['"]([^'"]*)*/g;
+    const text = document.document.getText();
+    let currentClasses: ClassesWrapper | undefined;
+    document.classesWrappers = [];
+    while (match = regEx.exec(text)) {
+        // Get unique classes
+        const classes: string[] = [...new Set(match[2].replace(/['"]+/g, '').match(/\S+/g))] || [];
+
+        const alreadyRegistered = document.classesWrappers.length > 0 && document.classesWrappers.some(classWrapper =>
+            classWrapper.classes.length === classes.length &&
+            classWrapper.classes.every(cssClass =>
+                classes.includes(cssClass)
+            )
+        );
+
+        if (alreadyRegistered) {
+            currentClasses = document.classesWrappers.find(classWrapper =>
+                classWrapper.classes.length === classes.length &&
+                classWrapper.classes.every(cssClass =>
+                    classes.includes(cssClass)
+                )
+            );
+
+            if (currentClasses) {
+                currentClasses.ranges.push(new vscode.Range(
+                    document.document.positionAt(match.index + (match[0].length - match[2].length)),
+                    document.document.positionAt(match.index + (match[0].length - match[2].length + 1) + match[2].length - 1)
+                ));
+            }
+        } else {
+            currentClasses = {
+                classes,
+                ranges: [
+                    new vscode.Range(
+                        document.document.positionAt(match.index + (match[0].length - match[2].length)),
+                        document.document.positionAt(match.index + (match[0].length - match[2].length + 1) + match[2].length - 1)
+                    )
+                ]
+            };
+            document.classesWrappers.push(currentClasses);
+        }
+    }
+}
+
+
+
+export async function activate(context: vscode.ExtensionContext) {
+    const CLASSES_MINIMUM: number = 3;
+    const OCCURRENCE_MINIMUM: number = 3;
+    const workspaceRootPath: string | undefined = vscode.workspace.rootPath;
+    let hoveredClasses: ClassesWrapper | undefined;
+    let timeout: NodeJS.Timer | null = null;
+    const decorations: vscode.DecorationOptions[] = [];
+
+    caching = true;
+
+    try {
+        await cache();
+    } catch (err) {
+        vscode.window.showErrorMessage(err.message);
+        caching = false;
+    } finally {
+        caching = false;
+    }
 
     const decorationType: vscode.TextEditorDecorationType = vscode.window.createTextEditorDecorationType({
         light: {
@@ -43,17 +128,25 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.window.onDidChangeActiveTextEditor(editor => {
         activeEditor = editor;
         if (editor) {
-            hoveredClassAttribute = undefined;
             triggerUpdateDecorations();
         }
     }, null, context.subscriptions);
 
     vscode.workspace.onDidChangeTextDocument(event => {
         if (activeEditor && event.document === activeEditor.document) {
-            hoveredClassAttribute = undefined;
             triggerUpdateDecorations();
         }
     }, null, context.subscriptions);
+
+
+    function getActiveDocument(): DocumentWrapper | undefined {
+        return documentWrappers.find(documentWrapper => {
+            if (activeEditor) {
+                return documentWrapper.document.uri.path === activeEditor.document.uri.path;
+            }
+            return false;
+        });
+    }
 
     function triggerUpdateDecorations() {
         if (timeout) {
@@ -62,74 +155,38 @@ export function activate(context: vscode.ExtensionContext) {
         timeout = setTimeout(updateDecorations, 500);
     }
 
+
+
     function updateDecorations() {
         if (!activeEditor) {
             return;
         }
-        const regEx = /\bclass(Name)?=['"]([^'"]*)*/g;
-        const text = activeEditor.document.getText();
-        const occurrences: vscode.DecorationOptions[] = [];
-        let match;
-        documentClasses.length = 0;
-        let currentClassAttribute: ClassAttribute | undefined;
-        while (match = regEx.exec(text)) {
-            // Get unique classes
-            const classes: string[] = [...new Set(match[2].replace(/['"]+/g, '').match(/\S+/g))] || [];
 
-            const alreadyRegistered = documentClasses.length > 0 && documentClasses.some(cssAttribute =>
-                cssAttribute.classes.length === classes.length &&
-                cssAttribute.classes.every(cssClass =>
-                    classes.includes(cssClass)
-                )
-            );
+        const document = getActiveDocument();
 
-            if (alreadyRegistered) {
-                currentClassAttribute = documentClasses.find(cssAttribute =>
-                    cssAttribute.classes.length === classes.length &&
-                    cssAttribute.classes.every(cssClass =>
-                        classes.includes(cssClass)
-                    )
-                );
+        if (document) {
+            decorations.length = 0;
 
-                if (currentClassAttribute) {
-                    currentClassAttribute.count += 1;
-                    currentClassAttribute.positions.push(new vscode.Range(
-                        activeEditor.document.positionAt(match.index + (match[0].length - match[2].length)),
-                        activeEditor.document.positionAt(match.index + (match[0].length - match[2].length + 1) + match[2].length - 1)
-                    ));
-                }
-            } else {
-                currentClassAttribute = {
-                    classes,
-                    count: 1,
-                    positions: [
-                        new vscode.Range(
-                            activeEditor.document.positionAt(match.index + (match[0].length - match[2].length)),
-                            activeEditor.document.positionAt(match.index + (match[0].length - match[2].length + 1) + match[2].length - 1)
-                        )
-                    ]
-                };
-                documentClasses.push(currentClassAttribute);
-            }
-        }
-        for (const classAttribute of documentClasses) {
-            if (classAttribute.classes.length > CLASSES_MINIMUM && classAttribute.count > OCCURRENCE_MINIMUM) {
-                for (const range of classAttribute.positions) {
-                    const decoration = { range };
-                    occurrences.push(decoration);
+            getClassesFromDocument(document);
+            for (const classesWrapper of document.classesWrappers) {
+                if (classesWrapper.classes.length > CLASSES_MINIMUM && classesWrapper.ranges.length > OCCURRENCE_MINIMUM) {
+                    for (const range of classesWrapper.ranges) {
+                        const decoration: vscode.DecorationOptions = { range };
+                        decorations.push(decoration);
+                    }
                 }
             }
+            activeEditor.setDecorations(decorationType, decorations);
+            updateHoveredDecorations();
         }
-        activeEditor.setDecorations(decorationType, occurrences);
-        updateHoveredDecorations();
     }
 
     function updateHoveredDecorations() {
         if (!activeEditor) {
             return;
         }
-        if (hoveredClassAttribute) {
-            activeEditor.setDecorations(decorationTypeSolid, hoveredClassAttribute.positions);
+        if (hoveredClasses) {
+            activeEditor.setDecorations(decorationTypeSolid, hoveredClasses.ranges);
         } else {
             activeEditor.setDecorations(decorationTypeSolid, []);
         }
@@ -137,21 +194,20 @@ export function activate(context: vscode.ExtensionContext) {
 
     vscode.languages.registerHoverProvider(
         [
-            'html',
-            'jade',
-            'razor',
-            'php',
-            'blade',
-            'twig',
-            'markdown',
-            'erb',
-            'handlebars',
-            'ejs',
-            'nunjucks',
-            'haml',
-            'leaf',
-            'HTML (Eex)',
-            'vue'
+            { scheme: 'file', language: 'html', },
+            { scheme: 'file', language: 'jade', },
+            { scheme: 'file', language: 'razor', },
+            { scheme: 'file', language: 'php', },
+            { scheme: 'file', language: 'blade', },
+            { scheme: 'file', language: 'twig', },
+            { scheme: 'file', language: 'markdown', },
+            { scheme: 'file', language: 'erb', },
+            { scheme: 'file', language: 'handlebars', },
+            { scheme: 'file', language: 'ejs', },
+            { scheme: 'file', language: 'nunjucks', },
+            { scheme: 'file', language: 'haml', },
+            { scheme: 'file', language: 'leaf', },
+            { scheme: 'file', language: 'vue' },
         ],
         {
             provideHover: (document, position) => {
@@ -175,17 +231,17 @@ export function activate(context: vscode.ExtensionContext) {
                 if (textAfterCursor) {
                     const str = textBeforeCursor + textAfterCursor[0];
                     const matches = str.match(/\bclass(Name)?=["']([^"']*)$/);
-
-                    if (matches && matches[2]) {
+                    const activeDocument = getActiveDocument();
+                    if (activeDocument && matches && matches[2]) {
                         const classes: string[] = [...new Set(matches[2].replace(/['"]+/g, '').match(/\S+/g))] || [];
-                        hoveredClassAttribute = documentClasses.find(cssAttribute =>
-                            cssAttribute.classes.length === classes.length &&
-                            cssAttribute.classes.every(cssClass =>
+                        hoveredClasses = activeDocument.classesWrappers.find(classWrapper =>
+                            classWrapper.classes.length === classes.length &&
+                            classWrapper.classes.every(cssClass =>
                                 classes.includes(cssClass)
                             )
                         );
 
-                        if (hoveredClassAttribute) {
+                        if (hoveredClasses) {
                             const range = new vscode.Range(
                                 new vscode.Position(
                                     position.line,
@@ -202,8 +258,28 @@ export function activate(context: vscode.ExtensionContext) {
 
                             updateHoveredDecorations();
                             const hoverStr = new vscode.MarkdownString();
-                            hoverStr.appendMarkdown(`**${hoveredClassAttribute.count} occurrences** in this document`);
                             hoverStr.appendCodeblock(`<element class="${classes.join(' ')}"/>`, 'html');
+
+                            documentWrappers.map(documentWrapper => {
+                                const equalWrapper = documentWrapper.classesWrappers.find(classWrapper => {
+
+                                    if (!hoveredClasses) { return false; }
+                                    return classWrapper.classes.length === hoveredClasses.classes.length &&
+                                        classWrapper.classes.every(cssClass => {
+                                            if (!hoveredClasses) { return false; }
+
+                                            return hoveredClasses.classes.includes(cssClass);
+                                        });
+                                });
+
+                                if (equalWrapper) {
+                                    let line = `${equalWrapper.ranges.length}x in\t${documentWrapper.document.fileName.substr(workspaceRootPath ? workspaceRootPath.length : 0)}`;
+                                    if (documentWrapper.document === document) {
+                                        line = `**${line}**`;
+                                    }
+                                    hoverStr.appendMarkdown(`${line}  \n`);
+                                }
+                            });
 
                             return new vscode.Hover(hoverStr, range);
                         }
