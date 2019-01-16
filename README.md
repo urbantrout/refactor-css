@@ -16,12 +16,24 @@ The order of the class names does not matter.
 
 ## Release Notes
 
-### 0.0.1
+## 0.1.1
 
-Initial release of Refactor CSS
+- Bugfix
+
+## 0.1.0
+
+- All files in the workspace are now parsed
+
+## 0.0.2
+
+- Bugfix/refactoring
+
+## 0.0.1
+
+- Initial release
 
 ## Roadmap
 
-- Parse whole workspace, not only current document.
-- Provide text selection of all occurrences for easy refactoring
-- Add settings for the user (limits, colors,…)
+- [x] Parse whole workspace, not only current document.
+- [ ] Provide text selection of all occurrences for easy refactoring
+- [ ] Add settings for the user (limits, colors,…)
