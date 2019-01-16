@@ -19,16 +19,21 @@ interface Document {
 const documents: Map<string, Document> = new Map();
 const readFileAsync = promisify(fs.readFile);
 
-async function createDocument(uri: vscode.Uri): Promise<Document> {
-    const text = await readFileAsync(uri.fsPath).then(data => data.toString());
-    const document: Document = {
-        path: uri.fsPath,
-        getText(): string {
-            return text;
-        },
-        classesWrappers: []
-    };
-    return document;
+async function createDocument(uri: vscode.Uri): Promise<Document | undefined> {
+    try {
+        const text = await readFileAsync(uri.fsPath);
+        const document: Document = {
+            path: uri.fsPath,
+            getText(): string {
+                return text.toString();
+            },
+            classesWrappers: []
+        };
+        return document;
+    } catch (error) {
+        console.error(error);
+        return;
+    }
 }
 
 async function cache(): Promise<void> {
@@ -37,8 +42,12 @@ async function cache(): Promise<void> {
 
         uris.map(uri => {
             createDocument(uri).then(document => {
-                getClassesFromDocument(document);
-                documents.set(uri.fsPath, document);
+                if (document) {
+                    getClassesFromDocument(document);
+                    documents.set(uri.fsPath, document);
+                }
+            }).catch(error => {
+                console.error(error);
             });
         });
     } catch (err) {
@@ -305,7 +314,7 @@ export async function activate(context: vscode.ExtensionContext) {
                                 if (equalWrapper) {
                                     let line = `${equalWrapper.ranges.length}x in\t${document.path.substr(workspaceRootPath ? workspaceRootPath.length : 0)}`;
                                     if (document.path === activeDocument.path) {
-                                        line = `**${line}**`;
+                                        line = `__${line}__`;
                                     }
                                     hoverStr.appendMarkdown(`${line}  \n`);
                                 }

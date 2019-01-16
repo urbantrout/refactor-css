@@ -19,9 +19,19 @@
   ],
   "activationEvents": [
     "onLanguage:html",
-    "onLanguage:vue",
+    "onLanguage:jade",
+    "onLanguage:razor",
     "onLanguage:php",
-    "onLanguage:js"
+    "onLanguage:blade",
+    "onLanguage:twig",
+    "onLanguage:markdown",
+    "onLanguage:erb",
+    "onLanguage:handlebars",
+    "onLanguage:ejs",
+    "onLanguage:nunjucks",
+    "onLanguage:haml",
+    "onLanguage:leaf",
+    "onLanguage:vue"
   ],
   "main": "./out/extension",
   "contributes": {
