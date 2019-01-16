@@ -1,8 +1,12 @@
 # Change Log
 
+## 0.1.2
+
+- bug fixes
+
 ## 0.1.1
 
-- Bugfix
+- bug fixes
 
 ## 0.1.0
 
@@ -10,7 +14,7 @@
 
 ## 0.0.2
 
-- Bugfix/refactoring
+- bug fixes, code refactoring
 
 ## 0.0.1
 
