@@ -38,20 +38,25 @@ async function createDocument(uri: vscode.Uri): Promise<Document | undefined> {
     }
 }
 
+function addDocument(uri: vscode.Uri) {
+    createDocument(uri).then(document => {
+        if (document) {
+            getClassesFromDocument(document);
+            documents.set(uri.fsPath, document);
+        }
+    }).catch(error => {
+        console.error(error);
+    });
+}
+
+function removeDocument(uri: vscode.Uri) {
+    documents.delete(uri.fsPath);
+}
+
 async function cache(): Promise<void> {
     try {
         const uris: vscode.Uri[] = await Fetcher.findAllParsableDocuments();
-
-        uris.map(uri => {
-            createDocument(uri).then(document => {
-                if (document) {
-                    getClassesFromDocument(document);
-                    documents.set(uri.fsPath, document);
-                }
-            }).catch(error => {
-                console.error(error);
-            });
-        });
+        uris.map(uri => addDocument(uri));
     } catch (err) {
         vscode.window.showErrorMessage(err.message);
     }
@@ -185,7 +190,6 @@ export async function activate(context: vscode.ExtensionContext) {
         }
     }, null, context.subscriptions);
 
-
     function getActiveDocument(): Document | undefined {
         if (activeEditor) {
             return documents.get(activeEditor.document.uri.path);
@@ -232,6 +236,18 @@ export async function activate(context: vscode.ExtensionContext) {
         } else {
             activeEditor.setDecorations(decorationTypeSolid, []);
         }
+    }
+
+    const configuration = vscode.workspace.getConfiguration();
+    const include = configuration.get("refactor-css.include");
+    const exclude = configuration.get("refactor-css.exclude");
+
+    if (include) {
+        const fileWatcher = vscode.workspace.createFileSystemWatcher(include as vscode.GlobPattern);
+
+        fileWatcher.onDidCreate(uri => addDocument(uri));
+        fileWatcher.onDidChange(uri => addDocument(uri));
+        fileWatcher.onDidDelete(uri => removeDocument(uri));
     }
 
     vscode.languages.registerHoverProvider(
