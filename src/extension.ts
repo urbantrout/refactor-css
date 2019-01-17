@@ -13,6 +13,7 @@ interface ClassesWrapper {
 
 interface Document {
     path: string;
+    scheme: string;
     getText(): string;
     classesWrappers: ClassesWrapper[];
 }
@@ -24,6 +25,7 @@ async function createDocument(uri: vscode.Uri): Promise<Document | undefined> {
         const text = await readFileAsync(uri.fsPath);
         const document: Document = {
             path: uri.fsPath,
+            scheme: uri.scheme,
             getText(): string {
                 return text.toString();
             },
@@ -171,6 +173,7 @@ export async function activate(context: vscode.ExtensionContext) {
             const editor = activeEditor;
             const document: Document = {
                 path: editor.document.uri.path,
+                scheme: editor.document.uri.scheme,
                 getText() {
                     return editor.document.getText();
                 },
@@ -297,8 +300,9 @@ export async function activate(context: vscode.ExtensionContext) {
 
                             updateHoveredDecorations();
                             const hoverStr = new vscode.MarkdownString();
+                            hoverStr.isTrusted = true;
                             hoverStr.appendCodeblock(`<element class="${classes.join(' ')}"/>`, 'html');
-
+                            const positions: string[] = [];
                             for (const [path, document] of documents.entries()) {
                                 const equalWrapper = document.classesWrappers.find(classWrapper => {
 
@@ -312,13 +316,28 @@ export async function activate(context: vscode.ExtensionContext) {
                                 });
 
                                 if (equalWrapper) {
-                                    let line = `${equalWrapper.ranges.length}x in\t${document.path.substr(workspaceRootPath ? workspaceRootPath.length : 0)}`;
+                                    const args = vscode.Uri.parse(`${document.scheme}://${document.path}`);
+
+                                    const commandUri = vscode.Uri.parse(`command:vscode.open?${
+                                        encodeURIComponent(JSON.stringify(args))
+                                        }`);
+
+                                    let line = `${equalWrapper.ranges.length}x in [${
+                                        document.path.substr(workspaceRootPath ? workspaceRootPath.length : 0)
+                                        }](${commandUri})`;
                                     if (document.path === activeDocument.path) {
                                         line = `__${line}__`;
                                     }
-                                    hoverStr.appendMarkdown(`${line}  \n`);
+                                    positions.push(line);
                                 }
                             }
+
+                            if (positions.length > 1) {
+                                hoverStr.appendMarkdown(`Found in ${positions.length} files:  \n\n`);
+                            }
+                            positions.forEach(position => {
+                                hoverStr.appendMarkdown(`${position}  \n`);
+                            });
 
                             return new vscode.Hover(hoverStr, range);
                         }

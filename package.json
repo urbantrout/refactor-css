@@ -2,7 +2,7 @@
   "name": "refactor-css",
   "displayName": "Refactor CSS",
   "description": "Helps you identify reoccurring CSS class name combinations in your markup.",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "engines": {
     "vscode": "^1.30.0"
   },

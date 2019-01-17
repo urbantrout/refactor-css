@@ -1,5 +1,9 @@
 # Change Log
 
+## 0.2.0
+
+- add links to file paths in hover message.
+
 ## 0.1.2
 
 - bug fixes
