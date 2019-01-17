@@ -16,7 +16,7 @@ The order of the class names does not matter.
 
 ## Release Notes
 
-See [CHANGELOG](https://raw.githubusercontent.com/urbantrout/refactor-css/master/CHANGELOG.md).
+See [CHANGELOG](https://github.com/urbantrout/refactor-css/blob/master/CHANGELOG.md).
 
 ## Roadmap
 
