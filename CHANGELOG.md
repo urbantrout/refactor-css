@@ -1,5 +1,9 @@
 # Change Log
 
+## 0.2.2
+
+- update keywords
+
 ## 0.2.1
 
 - fix problem with new and deleted files.
