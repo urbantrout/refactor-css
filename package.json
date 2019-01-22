@@ -15,7 +15,10 @@
     "refactor",
     "utility first css",
     "class",
-    "classes"
+    "classes",
+    "tailwind",
+    "tailwindcss",
+    "tachyons"
   ],
   "activationEvents": [
     "onLanguage:html",
