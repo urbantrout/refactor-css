@@ -1,5 +1,9 @@
 # Change Log
 
+## 0.2.3
+
+update npm packages due to a security warning
+
 ## 0.2.2
 
 - update keywords
