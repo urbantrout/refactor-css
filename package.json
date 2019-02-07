@@ -64,14 +64,14 @@
   },
   "devDependencies": {
     "@types/mocha": "^2.2.42",
-    "@types/node": "^8.10.25",
-    "prettier": "^1.15.3",
-    "tslint": "^5.8.0",
+    "@types/node": "^8.10.39",
+    "prettier": "^1.16.4",
+    "tslint": "^5.12.1",
     "tslint-config-airbnb-base": "^0.2.0",
-    "tslint-config-prettier": "^1.17.0",
+    "tslint-config-prettier": "^1.18.0",
     "tslint-config-standard": "^8.0.1",
-    "typescript": "^3.1.4",
-    "vscode": "^1.1.25"
+    "typescript": "^3.3.3",
+    "vscode": "^1.1.29"
   },
   "license": "MIT",
   "publisher": "urbantrout",
