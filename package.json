@@ -41,6 +41,16 @@
     "configuration": [
       {
         "properties": {
+          "refactor-css.highlightMinimumClasses": {
+            "type": "number",
+            "default": 3,
+            "description": "Minimum number of unique classes per HTML tag for highlighting."
+          },
+          "refactor-css.highlightMinimumOccurrences": {
+            "type": "number",
+            "default": 3,
+            "description": "Minimum number of occurrences of class combination in workspace for highlighting."
+          },
           "refactor-css.include": {
             "type": "string",
             "default": "**/*.{htm,html,vue,hbs,handlebars,php,jade,twig,md,erb,ejs,nunjucks,haml,leaf}",

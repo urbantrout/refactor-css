@@ -123,8 +123,9 @@ function getClassesFromDocument(document: Document) {
 }
 
 export async function activate(context: vscode.ExtensionContext) {
-    const CLASSES_MINIMUM: number = 3;
-    const OCCURRENCE_MINIMUM: number = 3;
+    const configuration = vscode.workspace.getConfiguration();
+    const CLASSES_MINIMUM: number = configuration.get("refactor-css.highlightMinimumClasses") || 3;
+    const OCCURRENCE_MINIMUM: number = configuration.get("refactor-css.highlightMinimumOccurrences") || 3;
     const workspaceRootPath: string | undefined = vscode.workspace.rootPath;
     let hoveredClasses: ClassesWrapper | undefined;
     let timeout: NodeJS.Timer | null = null;
@@ -214,8 +215,25 @@ export async function activate(context: vscode.ExtensionContext) {
         if (document) {
             decorations.length = 0;
             getClassesFromDocument(document);
+
+            // Iterate over every class combination of current document.
             for (const classesWrapper of document.classesWrappers) {
-                if (classesWrapper.classes.length > CLASSES_MINIMUM && classesWrapper.ranges.length > OCCURRENCE_MINIMUM) {
+                const occurrences = Array.from(documents.entries()).reduce((prev, [path, doc]) => {
+                    const equalWrapper = doc.classesWrappers.find(currentClassesWrapper =>
+                        currentClassesWrapper.classes.length === classesWrapper.classes.length &&
+                        currentClassesWrapper.classes.every(cssClass => {
+                            return classesWrapper.classes.includes(cssClass);
+                        })
+                    );
+
+                    if (!equalWrapper) {
+                        return prev;
+                    }
+
+                    return prev + equalWrapper.ranges.length;
+                }, 0);
+
+                if (classesWrapper.classes.length >= CLASSES_MINIMUM && occurrences >= OCCURRENCE_MINIMUM) {
                     for (const range of classesWrapper.ranges) {
                         const decoration: vscode.DecorationOptions = { range };
                         decorations.push(decoration);
@@ -238,7 +256,6 @@ export async function activate(context: vscode.ExtensionContext) {
         }
     }
 
-    const configuration = vscode.workspace.getConfiguration();
     const include = configuration.get("refactor-css.include");
     const exclude = configuration.get("refactor-css.exclude");
 
@@ -319,6 +336,7 @@ export async function activate(context: vscode.ExtensionContext) {
                             hoverStr.isTrusted = true;
                             hoverStr.appendCodeblock(`<element class="${classes.join(' ')}"/>`, 'html');
                             const positions: string[] = [];
+
                             for (const [path, document] of documents.entries()) {
                                 const equalWrapper = document.classesWrappers.find(classWrapper => {
 

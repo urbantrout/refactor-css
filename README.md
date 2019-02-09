@@ -8,7 +8,7 @@ Helps you identify reoccurring CSS class name combinations in your markup. This 
 
 ## Features
 
-Class names are highlighted if they have more than 3 unique classes and this combination of classes appears more than 3 times in the current document.
+Class names are highlighted if they have more than 3 unique classes and this combination of classes appears more than 3 times in the current document. These numbers can be changed in the settings.
 
 Hovering over classes highlights all other elements with the same combination of classes.
 
@@ -22,4 +22,4 @@ See [CHANGELOG](https://github.com/urbantrout/refactor-css/blob/master/CHANGELOG
 
 - [x] Parse whole workspace, not only current document.
 - [ ] Provide text selection of all occurrences for easy refactoring
-- [ ] Add settings for the user (limits, colors,…)
+- [x] Add settings for the user (limits)
