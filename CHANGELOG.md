@@ -1,28 +1,33 @@
 # Change Log
 
+## 0.3.0
+
+- Add settings for limits.
+- Improve decorations for class name combinations.
+
 ## 0.2.3
 
-update npm packages due to a security warning
+- Update npm packages due to a security warning.
 
 ## 0.2.2
 
-- update keywords
+- Update keywords
 
 ## 0.2.1
 
-- fix problem with new and deleted files.
+- Fix problem with new and deleted files.
 
 ## 0.2.0
 
-- add links to file paths in hover message.
+- Add links to file paths in hover message.
 
 ## 0.1.2
 
-- bug fixes
+- Bug fixes
 
 ## 0.1.1
 
-- bug fixes
+- Bug fixes
 
 ## 0.1.0
 
@@ -30,7 +35,7 @@ update npm packages due to a security warning
 
 ## 0.0.2
 
-- bug fixes, code refactoring
+- Bug fixes, code refactoring
 
 ## 0.0.1
 
