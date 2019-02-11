@@ -2,7 +2,7 @@
 
 **[Install via VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=urbantrout.refactor-css)**
 
-Helps you identify reoccurring CSS class name combinations in your markup. This is especially useful if you are working with an utlity-first CSS framework like [TailwindCSS](https://tailwindcss.com/), [Tachyons](http://tachyons.io/),…
+Helps you identify reoccurring CSS class name combinations in your markup. This is especially useful if you are working with an utility-first CSS framework like [TailwindCSS](https://tailwindcss.com/), [Tachyons](http://tachyons.io/),…
 
 <img src="https://raw.githubusercontent.com/urbantrout/refactor-css/master/img/refactor.gif" alt="Hovering over CSS classes reveals infos." width="750">
 
