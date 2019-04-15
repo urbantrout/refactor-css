@@ -1,5 +1,9 @@
 # Change Log
 
+## 0.4.0
+
+- Display total number of occurrences
+
 ## 0.3.0
 
 - Add settings for limits.
