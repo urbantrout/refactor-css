@@ -336,6 +336,7 @@ export async function activate(context: vscode.ExtensionContext) {
                             hoverStr.isTrusted = true;
                             hoverStr.appendCodeblock(`<element class="${classes.join(' ')}"/>`, 'html');
                             const positions: string[] = [];
+                            let total = 0;
 
                             for (const [path, document] of documents.entries()) {
                                 const equalWrapper = document.classesWrappers.find(classWrapper => {
@@ -351,23 +352,25 @@ export async function activate(context: vscode.ExtensionContext) {
 
                                 if (equalWrapper) {
                                     const args = vscode.Uri.parse(`${document.scheme}://${document.path}`);
+                                    const count = equalWrapper.ranges.length;
 
                                     const commandUri = vscode.Uri.parse(`command:vscode.open?${
                                         encodeURIComponent(JSON.stringify(args))
                                         }`);
 
-                                    let line = `${equalWrapper.ranges.length}x in [${
+                                    let line = `${count}x in [${
                                         document.path.substr(workspaceRootPath ? workspaceRootPath.length : 0)
                                         }](${commandUri})`;
                                     if (document.path === activeDocument.path) {
                                         line = `__${line}__`;
                                     }
                                     positions.push(line);
+                                    total += count;
                                 }
                             }
 
                             if (positions.length > 1) {
-                                hoverStr.appendMarkdown(`Found in ${positions.length} files:  \n\n`);
+                                hoverStr.appendMarkdown(`Found ${total} times in ${positions.length} files:  \n\n`);
                             }
                             positions.forEach(position => {
                                 hoverStr.appendMarkdown(`${position}  \n`);
